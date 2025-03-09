@@ -67,7 +67,7 @@ Now, visit:
 
 bash
 Copy
-Edit
+Editd:\School\E-6 Y-3\WAD\Group Assignment\Sermester 2\RMSDB.png
 http://localhost:8000/index.php?page=menu
 📌 Features
 ✅ Menu Management - View available dishes
