@@ -48,8 +48,6 @@ Import the database from database/RMSDB.sql.
 Update config/database.php with your database credentials:
 
 php
-Copy
-Edit
 $host = "localhost";
 $user = "root";
 $pass = "";
@@ -60,14 +58,9 @@ If using XAMPP, move the project to htdocs/ and start Apache & MySQL.
 Or use PHP's built-in server:
 
 sh
-Copy
-Edit
 php -S localhost:8000 -t public/ 
 Now, visit:
 
-bash
-Copy
-Editd:\School\E-6 Y-3\WAD\Group Assignment\Sermester 2\RMSDB.png
 http://localhost:8000/index.php?page=menu
 📌 Features
 ✅ Menu Management - View available dishes
