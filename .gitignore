@@ -1,0 +1,24 @@
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and cache
+logs/
+cache/
+*.log
+
+# Ignore uploaded files (User-generated content)
+public/uploads/
+public/assets/uploads/
+
+# Ignore dependencies (If using Composer)
+vendor/
+
+# Ignore environment settings
+.env
+.env.uat
+
+# Ignore IDE and OS-specific files
+.vscode/
+.idea/
+node_modules/
