@@ -19,4 +19,16 @@ function loadEnv($path = __DIR__ . '/../.env') {
 
 // Load environment variables
 loadEnv();
+
+define('BASE_URL', 'http://localhost');
+define('APP_NAME', 'Restaurant Management System(RMS)');
+define('APP_ROOT', dirname(dirname(__FILE__)));
+define('PUBLIC_ROOT', BASE_URL . '/public');
+
+// Error reporting
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+session_start();
 ?>
