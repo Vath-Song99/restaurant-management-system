@@ -6,6 +6,8 @@
     <title>404 - Page Not Found</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= PUBLIC_ROOT ?>/css/styles.css">
+    <link rel="icon" href="https://cdn.pixabay.com/photo/2021/05/25/02/03/restaurant-6281067_1280.png" type="image/x-icon">
     <!-- Custom CSS -->
     <style>
         :root {
@@ -221,14 +223,11 @@
         <div class="error-container">
             <h1 class="error-code">404</h1>
             <h2 class="error-message">Oops! Page Not Found</h2>
-            <p class="error-details">The dish you ordered seems to be missing from our menu.</p>
             
             <div class="plate animated-element">
                 <div class="plate-circle">
                     <div class="question-mark">?</div>
                 </div>
-                <div class="fork"></div>
-                <div class="knife"></div>
             </div>
             
             <a href="/" class="btn btn-home btn-lg">Go Back Home</a>
