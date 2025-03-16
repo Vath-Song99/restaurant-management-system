@@ -49,6 +49,7 @@ class Router {
         
         foreach ($this->routes as $route) {
             $pattern = $this->patternToRegex($route['path']);
+
             if ($requestMethod == $route['method'] && preg_match($pattern, $requestUri, $matches)) {
                 array_shift($matches);
                 $controller = new $route['controller']();              
@@ -56,7 +57,6 @@ class Router {
                 return;
             }
         }
-        
         header("Location:" . BASE_URL . "/errors/404");
         exit;
     }

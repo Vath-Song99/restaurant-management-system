@@ -1,4 +1,8 @@
 <?php
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require APP_ROOT . '/vendor/autoload.php';
 class AuthController
 {
     private $userModel;
@@ -65,7 +69,7 @@ class AuthController
                     exit;
                 }
             } else {
-                FlashHelper::setFlash('login_error', 'No user found with that email', 'alert alert-danger');
+                FlashHelper::setFlash('login_error', 'No user found this email, Please contact our support team', 'alert alert-danger');
                 header('Location: ' . BASE_URL . '/auth/login');
                 exit;
             }
@@ -73,8 +77,6 @@ class AuthController
             require_once APP_ROOT . '/views/auth/login.php';
         }
     }
-
-    // Handle logout
     public function logout()
     {
         AuthMiddleware::logout();
@@ -83,43 +85,60 @@ class AuthController
         exit;
     }
 
-    // Display forgot password page
     public function forgotPassword()
     {
-        // Check if already logged in
         AuthMiddleware::isGuest();
 
-        // Handle POST request
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            // Sanitize POST data
             $_POST = ValidationHelper::sanitizeInput($_POST);
 
-            // Validate CSRF token
             if (!CSRFHelper::verifyToken($_POST['csrf_token'])) {
                 FlashHelper::setFlash('error', 'Security token validation failed. Please try again.', 'alert alert-danger');
                 header('Location: ' . BASE_URL . '/auth/forgot-password');
                 exit;
             }
 
-            // Validate email
             if (empty($_POST['email']) || !ValidationHelper::validateEmail($_POST['email'])) {
                 FlashHelper::setFlash('error', 'Please enter a valid email address', 'alert alert-danger');
                 header('Location: ' . BASE_URL . '/auth/forgot-password');
                 exit;
             }
 
-            // Check for user
             $user = $this->userModel->findUserByEmail($_POST['email']);
 
             if ($user) {
-                // Generate token
+        
                 $token = bin2hex(random_bytes(32));
 
-                // Store token in database
                 if ($this->userModel->storeResetToken($user->email, $token)) {
-                    // In a real application, you would send an email with the reset link
-                    // For demonstration purposes, we'll just show a success message
-                    FlashHelper::setFlash('success', 'Password reset link has been sent to your email address. (For demonstration, the token is: ' . $token . ')', 'alert alert-success');
+                    $mail = new PHPMailer(true);
+
+                    try {
+                        $mail->isSMTP();
+                        $mail->Host       = 'smtp.gmail.com';  // Your SMTP server
+                        $mail->SMTPAuth   = true;
+                        $mail->Username   = 'vatgaming287@gmail.com';
+                        $mail->Password   = 'jhxm olpp iqzt doye';
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port       = 587;
+                    
+                        $mail->setFrom('vatgaming287@gmail.com', 'RMS');
+                        $mail->addAddress($user->email);
+                    
+                        $mail->isHTML(true);
+                        $mail->Subject = "HTML email";
+                        $mail->Body    = '<p>Dear ' . htmlspecialchars($user->name) . ',</p>';
+                        $mail->Body   .= '<p>You have requested to reset your password. Please click the link below to reset your password:</p>';
+                        $mail->Body   .= '<p><a href="' . BASE_URL . '/auth/reset-password/' . $token . '">Reset Password</a></p>';
+                        $mail->Body   .= '<p>If you did not request this, please ignore this email.</p>';
+                        $mail->Body   .= '<p>Thank you,</p>';
+                        $mail->Body   .= '<p>Restaurant Management System</p>';
+                    
+                        $mail->send();
+                        FlashHelper::setFlash('success', 'Password reset link has been sent.', 'alert alert-success');
+                    } catch (Exception $e) {
+                        FlashHelper::setFlash('error', 'Failed to send email: ' . $mail->ErrorInfo, 'alert alert-danger');
+                    }
                     header('Location: ' . BASE_URL . '/auth/forgot-password');
                     exit;
                 } else {
@@ -142,7 +161,6 @@ class AuthController
     // Display reset password page
     public function resetPassword($token = null)
     {
-        // Check if already logged in
         AuthMiddleware::isGuest();
 
         if (!$token) {
@@ -151,7 +169,6 @@ class AuthController
             exit;
         }
 
-        // Verify token
         $user = $this->userModel->verifyResetToken($token);
 
         if (!$user) {
@@ -160,36 +177,29 @@ class AuthController
             exit;
         }
 
-        // Handle POST request
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            // Sanitize POST data
             $_POST = ValidationHelper::sanitizeInput($_POST);
 
-            // Validate CSRF token
             if (!CSRFHelper::verifyToken($_POST['csrf_token'])) {
                 FlashHelper::setFlash('error', 'Security token validation failed. Please try again.', 'alert alert-danger');
                 header('Location: ' . BASE_URL . '/auth/reset-password/' . $token);
                 exit;
             }
 
-            // Validate password
             if (empty($_POST['password']) || !ValidationHelper::validatePassword($_POST['password'])) {
                 FlashHelper::setFlash('error', 'Password must be at least 8 characters long and contain uppercase, lowercase and numbers', 'alert alert-danger');
                 header('Location: ' . BASE_URL . '/auth/reset-password/' . $token);
                 exit;
             }
 
-            // Validate confirm password
             if (empty($_POST['confirm_password']) || $_POST['password'] != $_POST['confirm_password']) {
                 FlashHelper::setFlash('error', 'Passwords do not match', 'alert alert-danger');
                 header('Location: ' . BASE_URL . '/auth/reset-password/' . $token);
                 exit;
             }
 
-            // Hash password
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-            // Update password
             if ($this->userModel->resetPassword($user->id, $password)) {
                 FlashHelper::setFlash('login_success', 'Your password has been reset. You can now log in with your new password', 'alert alert-success');
                 header('Location: ' . BASE_URL . '/auth/login');
@@ -200,7 +210,6 @@ class AuthController
                 exit;
             }
         } else {
-            // Load the view
             require_once APP_ROOT . '/views/auth/resetPassword.php';
         }
     }

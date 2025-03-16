@@ -12,6 +12,8 @@ $router->post('/auth/login', 'AuthController', 'login');
 $router->get('/auth/logout', 'AuthController', 'logout');
 $router->get('/auth/forgot-password', 'AuthController', 'forgotPassword');
 $router->post('/auth/forgot-password', 'AuthController', 'forgotPassword');
+$router->get('/auth/reset-password/{token}', 'AuthController', 'resetPassword');
+$router->post('/auth/reset-password/{token}', 'AuthController', 'resetPassword');
 
 
 // Menu routes

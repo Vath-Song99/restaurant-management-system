@@ -1,0 +1,12 @@
+{
+    "name": "rms/restaurant-management-system",
+    "authors": [
+        {
+            "name": "Smoeury-Songvat",
+            "email": "s.songvat@dgc.gov.kh"
+        }
+    ],
+    "require": {
+        "phpmailer/phpmailer": "^6.9"
+    }
+}
