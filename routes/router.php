@@ -40,10 +40,15 @@ class Router {
     public function dispatch() {
         $requestMethod = $_SERVER['REQUEST_METHOD'];
         $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
+        $queryParams = [];
+        
+        if (isset($_SERVER['QUERY_STRING'])) {
+            parse_str($_SERVER['QUERY_STRING'], $queryParams);
+        }
+        
         if ($requestMethod == 'POST' && isset($_POST['_method'])) {
             if (in_array($_POST['_method'], ['PUT', 'DELETE'])) {
-                $requestMethod = $_POST['_method'];
+            $requestMethod = $_POST['_method'];
             }
         }
         
@@ -51,10 +56,10 @@ class Router {
             $pattern = $this->patternToRegex($route['path']);
 
             if ($requestMethod == $route['method'] && preg_match($pattern, $requestUri, $matches)) {
-                array_shift($matches);
-                $controller = new $route['controller']();              
-                call_user_func_array([$controller, $route['action']], $matches);
-                return;
+            array_shift($matches);
+            $controller = new $route['controller']();              
+            call_user_func_array([$controller, $route['action']], array_merge($matches, [$queryParams]));
+            return;
             }
         }
         header("Location:" . BASE_URL . "/errors/404");

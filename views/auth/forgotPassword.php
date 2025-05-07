@@ -1,6 +1,22 @@
-<?php
-require_once APP_ROOT . '/views/layouts/header.php';
-?>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= APP_NAME ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="<?= PUBLIC_ROOT ?>/css/styles.css">
+    <link rel="stylesheet" href="<?= PUBLIC_ROOT ?>/css/bootstrap.min.css">
+    <link rel="icon" href="<?= PUBLIC_ROOT ?>/img/favicon.ico">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <link href="<?= PUBLIC_ROOT ?>/lib/animate/animate.min.css" rel="stylesheet">
+    <link href="<?= PUBLIC_ROOT ?>/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <link href="<?= PUBLIC_ROOT ?>/lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css" rel="stylesheet" />
+    <script src="<?= PUBLIC_ROOT ?>/js/main.js"></script>
+</head>
 
 <div class="container">
     <div class="row justify-content-center align-items-center min-vh-75 py-5">
@@ -33,7 +49,7 @@ require_once APP_ROOT . '/views/layouts/header.php';
                         </div>
                     </div>
                     
-                    <form id="forgotPasswordForm" action="<?php echo BASE_URL; ?>/auth/forgot-password" method="post">
+                    <form id="forgotPasswordForm" action="<?= BASE_URL; ?>/auth/forgot-password" method="post">
                         <?php echo CSRFHelper::getTokenField(); ?>
                         
                         <div class="mb-4">
@@ -57,7 +73,7 @@ require_once APP_ROOT . '/views/layouts/header.php';
                     
                     <div class="text-center">
                         <p class="small text-muted mb-0">Remember your password?</p>
-                        <a href="<?php echo BASE_URL; ?>/auth/login" class="text-primary fw-bold text-decoration-none">
+                        <a href="<?= BASE_URL; ?>/auth/login" class="text-primary fw-bold text-decoration-none">
                             <i class="bi bi-arrow-left me-1"></i> Back to Login
                         </a>
                     </div>
@@ -186,5 +202,3 @@ document.addEventListener('DOMContentLoaded', function() {
     forgotCard.classList.add('fadeIn');
 });
 </script>
-
-<?php require_once APP_ROOT . '/views/layouts/footer.php'; ?>

@@ -10,7 +10,7 @@ class AuthMiddleware {
     
     public static function isGuest() {
         if (SessionHelper::exists('is_logged_in') && SessionHelper::get('is_logged_in')) {
-            header('Location: ' . BASE_URL . '/dashboard');
+            header('Location: ' . BASE_URL . '/');
             exit;
         }
     }

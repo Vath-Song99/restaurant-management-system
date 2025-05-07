@@ -1,233 +1,213 @@
 <?php
-class UserController {
+// controllers/UserController.php
+
+class UserController extends BaseController {
+
     private $userModel;
     private $roleModel;
-    
+
     public function __construct() {
+        AuthMiddleware::isLoggedIn();
+        RoleMiddleware::hasPermission('manage_users');
         $this->userModel = new User();
         $this->roleModel = new Role();
     }
-    
-    // Add user (admin only)
-    public function add() {
-        // Check if user is admin
-        RoleMiddleware::hasRole(1);
-        
-        // Check permission
-        RoleMiddleware::hasPermission('manage_users');
-        
-        // Handle POST request
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            // Sanitize POST data
-            $_POST = ValidationHelper::sanitizeInput($_POST);
-            
-            // Validate CSRF token
-            if (!CSRFHelper::verifyToken($_POST['csrf_token'])) {
-                FlashHelper::setFlash('error', 'Security token validation failed. Please try again.', 'alert alert-danger');
-                header('Location: ' . BASE_URL . '/dashboard/users');
-                exit;
-            }
-            
-            // Validate form data
-            $errors = [];
-            
-            if (empty($_POST['name'])) {
-                $errors[] = 'Name is required';
-            }
-            
-            if (empty($_POST['email']) || !ValidationHelper::validateEmail($_POST['email'])) {
-                $errors[] = 'Valid email is required';
-            } else if ($this->userModel->findUserByEmail($_POST['email'])) {
-                $errors[] = 'Email already exists';
-            }
-            
-            if (empty($_POST['password']) || !ValidationHelper::validatePassword($_POST['password'])) {
-                $errors[] = 'Password must be at least 8 characters long and contain uppercase, lowercase and numbers';
-            }
-            
-            if (empty($_POST['confirm_password']) || $_POST['password'] != $_POST['confirm_password']) {
-                $errors[] = 'Passwords do not match';
-            }
-            
-            if (empty($_POST['role_id'])) {
-                $errors[] = 'Role is required';
-            }
-            
-            // Check for errors
-            if (!empty($errors)) {
-                $_SESSION['form_errors'] = $errors;
-                $_SESSION['form_data'] = $_POST;
-                header('Location: ' . BASE_URL . '/dashboard/users');
-                exit;
-            }
-            
-            // Hash password
-            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            
-            // Prepare data
-            $data = [
-                'name' => $_POST['name'],
-                'email' => $_POST['email'],
-                'password' => $password,
-                'role_id' => $_POST['role_id']
+
+    public function index() {
+        // Get all users
+        $this->data['users'] = $this->userModel->getUsers();
+
+        // Get flash message if exists
+        $this->data['flash'] = $this->getFlash();
+
+        $this->render('users/index');
+    }
+
+    public function create() {
+        // Check if form was submitted
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $user = [
+                'name' => trim($_POST['name'] ?? ''),
+                'email' => trim($_POST['email'] ?? ''),
+                'password' => password_hash(trim($_POST['password'] ?? ''), PASSWORD_BCRYPT),
+                'role_id' => trim($_POST['role_id'] ?? ''),
+                'is_active' => trim($_POST['is_active'] ?? 1)
             ];
-            
-            // Add user
-            if ($this->userModel->register($data)) {
-                FlashHelper::setFlash('success', 'User added successfully', 'alert alert-success');
-                header('Location: ' . BASE_URL . '/dashboard/users');
-                exit;
+
+            // Validate input
+            $errors = $this->validate($user, [
+                'name' => 'required|max:100',
+                'email' => 'required|email|max:100|unique:users,email',
+                'password' => 'required|min:6',
+                'role_id' => 'required|numeric',
+            ]);
+
+            if($user['email'] && $this->userModel->findUserByEmail($user['email'])) {
+                $errors['email'] = 'Email already exists';
+                $this->setFlash('danger', 'Email already exists');
+                $this->redirect('/dashboard/users');
+            }
+
+            if (empty($errors)) {
+                if ($this->userModel->register($user)) {
+                    $this->setFlash('success', 'User created successfully');
+                    $this->redirect('/dashboard/users');
+                } else {
+                    $this->setFlash('danger', 'Error creating user');
+                    $this->data['user'] = $user;
+                    $this->data['errors'] = $errors;
+                    $this->render('users/create');
+                }
             } else {
-                FlashHelper::setFlash('error', 'Failed to add user', 'alert alert-danger');
-                header('Location: ' . BASE_URL . '/dashboard/users');
-                exit;
+                $this->data['user'] = $user;
+                $this->data['errors'] = $errors;
+                $this->render('users/create');
             }
         } else {
-            header('Location: ' . BASE_URL . '/dashboard/users');
-            exit;
+            // Display the create form
+            $this->data['user'] = [
+                'name' => '',
+                'email' => '',
+                'password' => '',
+                'role_id' => '',
+                'is_active' => 1
+            ];
+            $this->data['roles'] = $this->roleModel->getRoles(); // Assuming you have a method to get roles
+            $this->data['errors'] = [];
+            $this->render('users/create');
         }
     }
-    
-    // Edit user (admin only)
-    public function edit($id = null) {
-        // Check if user is admin
-        RoleMiddleware::hasRole(1);
-        
-        // Check permission
-        RoleMiddleware::hasPermission('manage_users');
-        
+
+    public function edit($id) {
         if (!$id) {
-            FlashHelper::setFlash('error', 'User ID is required', 'alert alert-danger');
-            header('Location: ' . BASE_URL . '/dashboard/users');
-            exit;
+            $this->setFlash('danger', 'Invalid user ID');
+            $this->redirect('users');
         }
-        
-        // Handle POST request
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            // Sanitize POST data
-            $_POST = ValidationHelper::sanitizeInput($_POST);
-            
-            // Validate CSRF token
-            if (!CSRFHelper::verifyToken($_POST['csrf_token'])) {
-                FlashHelper::setFlash('error', 'Security token validation failed. Please try again.', 'alert alert-danger');
-                header('Location: ' . BASE_URL . '/dashboard/users');
-                exit;
-            }
-            
-            // Validate form data
-            $errors = [];
-            
-            if (empty($_POST['name'])) {
-                $errors[] = 'Name is required';
-            }
-            
-            $user = $this->userModel->findUserById($id);
-            
-            if (empty($_POST['email']) || !ValidationHelper::validateEmail($_POST['email'])) {
-                $errors[] = 'Valid email is required';
-            } else if ($_POST['email'] != $user->email && $this->userModel->findUserByEmail($_POST['email'])) {
-                $errors[] = 'Email already exists';
-            }
-            
-            // Password is optional when editing
-            if (!empty($_POST['password'])) {
-                if (!ValidationHelper::validatePassword($_POST['password'])) {
-                    $errors[] = 'Password must be at least 8 characters long and contain uppercase, lowercase and numbers';
-                }
-                
-                if (empty($_POST['confirm_password']) || $_POST['password'] != $_POST['confirm_password']) {
-                    $errors[] = 'Passwords do not match';
-                }
-            }
-            
-            if (empty($_POST['role_id'])) {
-                $errors[] = 'Role is required';
-            }
-            
-            // Check for errors
-            if (!empty($errors)) {
-                $_SESSION['form_errors'] = $errors;
-                $_SESSION['form_data'] = $_POST;
-                header('Location: ' . BASE_URL . '/user/edit/' . $id);
-                exit;
-            }
-            
-            // Prepare data
-            $data = [
-                'id' => $id,
-                'name' => $_POST['name'],
-                'email' => $_POST['email'],
-                'role_id' => $_POST['role_id'],
-                'is_active' => isset($_POST['is_active']) ? 1 : 0
+
+        $user = $this->userModel->findUserById($id);
+
+        if (!$user) {
+            $this->setFlash('danger', 'User not found');
+            $this->redirect('users');
+        }
+
+        // Check if form was submitted
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $user = [
+                'name' => trim($_POST['name'] ?? ''),
+                'email' => trim($_POST['email'] ?? ''),
+                'password' => password_hash(trim($_POST['password'] ?? ''), PASSWORD_BCRYPT),
+                'role_id' => trim($_POST['role_id'] ?? ''),
+                'is_active' => trim($_POST['is_active'] ?? 1)
             ];
-            
-            // Add password if set
-            if (!empty($_POST['password'])) {
-                $data['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            }
-            
-            // Update user
-            if ($this->userModel->updateUser($data)) {
-                FlashHelper::setFlash('success', 'User updated successfully', 'alert alert-success');
-                header('Location: ' . BASE_URL . '/dashboard/users');
-                exit;
+
+            // Validate input
+            $errors = $this->validate($user, [
+                'name' => 'required|max:100',
+                'email' => 'required|email|max:100|unique:users,email',
+                'password' => 'required|min:6',
+                'role_id' => 'required|numeric',
+            ]);
+
+            if (empty($errors)) {
+                if ($this->userModel->updateUserById($id, $user)) {
+                    $this->setFlash('success', 'User updated successfully');
+                    $this->redirect('/dashboard/users');
+                } else {
+                    $this->setFlash('danger', 'Error updating user');
+                    $this->data['user'] = $user;
+                    $this->data['errors'] = $errors;
+                    $this->render('users/edit');
+                }
             } else {
-                FlashHelper::setFlash('error', 'Failed to update user', 'alert alert-danger');
-                header('Location: ' . BASE_URL . '/user/edit/' . $id);
-                exit;
+                $this->data['user'] = $user;
+                $this->data['errors'] = $errors;
+                $this->render('users/edit');
             }
         } else {
-            // Get user
+            $this->data['user'] = $user;
+            $this->data['roles'] = $this->roleModel->getRoles();
+            $this->data['errors'] = [];
+            $this->render('users/edit');
+        }
+    }
+
+    public function delete($id) {
+        if (!$id) {
+            $this->setFlash('danger', 'Invalid user ID');
+            $this->redirect('users');
+        }
+
+        // Check if form was submitted (confirmation)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if ($this->userModel->deleteUser($id)) {
+                $this->setFlash('success', 'User deleted successfully');
+            } else {
+                $this->setFlash('danger', 'Error deleting user');
+            }
+
+            $this->redirect('/dashboard/users');
+        } else {
+            // Display the confirmation form
             $user = $this->userModel->findUserById($id);
-            
+
             if (!$user) {
-                FlashHelper::setFlash('error', 'User not found', 'alert alert-danger');
-                header('Location: ' . BASE_URL . '/dashboard/users');
-                exit;
+                $this->setFlash('danger', 'User not found');
+                $this->redirect('users');
             }
-            
-            // Get all roles
-            $roles = $this->roleModel->getRoles();
-            
-            // Get permissions for sidebar
-            $permissions = $this->roleModel->getRolePermissions(SessionHelper::get('user_role_id'));
-            
-            // Load the view
-            require_once APP_ROOT . '/views/dashboard/edit_user.php';
+
+            $this->data['user'] = $user;
+            $this->render('users/delete');
         }
     }
-    
-    // Delete user (admin only)
-    public function delete($id = null) {
-        // Check if user is admin
-        RoleMiddleware::hasRole(1);
-        
-        // Check permission
-        RoleMiddleware::hasPermission('manage_users');
-        
+
+    public function qrcode ($id) {
         if (!$id) {
-            FlashHelper::setFlash('error', 'User ID is required', 'alert alert-danger');
-            header('Location: ' . BASE_URL . '/dashboard/users');
-            exit;
+            $this->setFlash('danger', 'Invalid user ID');
+            $this->redirect('users');
         }
-        
-        // Prevent self-deletion
-        if ($id == SessionHelper::get('user_id')) {
-            FlashHelper::setFlash('error', 'You cannot delete your own account', 'alert alert-danger');
-            header('Location: ' . BASE_URL . '/dashboard/users');
-            exit;
+
+        // Generate QR code for the user
+        $user = $this->userModel->findUserById($id);
+
+        if (!$user) {
+            $this->setFlash('danger', 'User not found');
+            $this->redirect('users');
         }
-        
-        // Delete user
-        if ($this->userModel->deleteUser($id)) {
-            FlashHelper::setFlash('success', 'User deleted successfully', 'alert alert-success');
-            header('Location: ' . BASE_URL . '/dashboard/users');
-            exit;
-        } else {
-            FlashHelper::setFlash('error', 'Failed to delete user', 'alert alert-danger');
-            header('Location: ' . BASE_URL . '/dashboard/users');
-            exit;
+
+        $user->login_token = bin2hex(random_bytes(16));
+        $this->userModel->updateLoginToken($id,  $user->login_token);
+        $qrcode = QRCodeGenerator::generate(BASE_URL . '/auth/login/qrcode/' . urlencode($user->login_token ?? ''));
+
+        $this->userModel->updateQrcode($id, $qrcode);
+        $this->data['qrcode'] = $qrcode;
+        $this->data['user'] = $user;
+        $this->render('users/qrcode');
+    }
+
+    public function downloadQrcode ($id) {
+        if (!$id) {
+            $this->setFlash('danger', 'Invalid user ID');
+            $this->redirect('users');
         }
+
+        // Generate QR code for the user
+        $user = $this->userModel->findUserById($id);
+
+        if (!$user) {
+            $this->setFlash('danger', 'User not found');
+            $this->redirect('users');
+        }
+
+        $qrcode = $user->login_qrcode;
+        if (!$qrcode) {
+            $this->setFlash('danger', 'QR code not found for this user');
+            $this->redirect('dashboard/users');
+        }
+        // Set headers for download
+        header('Content-Type: image/png');
+        header('Content-Disposition: attachment; filename="rms_login_qrcode_' . strtolower(str_replace(' ', '_', $user->name)) . '.png"');
+        echo base64_decode(str_replace('data:image/png;base64,', '', $qrcode));
     }
 }
 ?>

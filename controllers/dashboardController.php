@@ -1,37 +1,38 @@
 <?php
 
-class DashboardController {
+class DashboardController extends BaseController  {
     private $roleModel;
-    
+    private $menuModel;
+    private $categoryModel;
+    private $orderModel;
+    private $staffModel;
     public function __construct() {
         $this->roleModel = new Role();
+        $this->menuModel = new Menu();
+        $this->categoryModel = new Category();
+        $this->orderModel = new Order();
+        $this->staffModel = new Staff();
     }
     
     // Display dashboard
     public function index() {
-        // Check if user is logged in
         AuthMiddleware::isLoggedIn();
-        
-        // Check permission
         RoleMiddleware::hasPermission('view_dashboard');
         
-        // Get user role permissions for sidebar menu
-        $permissions = $this->roleModel->getRolePermissions(SessionHelper::get('user_role_id'));
+        $this->data['totalMenuItems'] = $this->menuModel->count();
+        $this->data['totalCategories'] = $this->categoryModel->count();
+        $this->data['totalOrders'] = $this->orderModel->count();
+        $this->data['totalStaff'] = $this->staffModel->count();
+        // Get recent orders
+        $this->data['recentOrders'] = $this->orderModel->getRecent(5);
         
-        // Determine which dashboard to show based on role
-        $role_id = SessionHelper::get('user_role_id');
+        // Get order stats
+        $this->data['orderStats'] = $this->orderModel->getStatsByStatus();
         
-        switch ($role_id) {
-            case 1:
-            require_once APP_ROOT . '/views/dashboard/admin.php';
-            break;
-            case 2: 
-            require_once APP_ROOT . '/views/dashboard/manager.php';
-            break;
-            default: 
-            require_once APP_ROOT . '/views/dashboard/staff.php';
-            break;
-        }
+        // Get popular menu items
+        $this->data['popularItems'] = $this->menuModel->getPopular(9);
+        
+        $this->render('dashboard');
     }
     
     // Display user management page (admin only)
